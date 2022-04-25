@@ -92,6 +92,24 @@
     private bool isCallIncoming = false;
     
     [Parameter] public EventCallback<string> OnCallRequested { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        dotNetObjectReference = DotNetObjectReference.Create(this);
+        var dialerModule = await js.InvokeAsync<IJSObjectReference>("import", "./js/dialer.js");
+        jsDialer = await dialerModule.InvokeAsync<IJSObjectReference>("createDialer");
+        await jsDialer.InvokeVoidAsync("setDotNetObjectReference", dotNetObjectReference);
+
+        var jwtToken = await GetTwilioAuthenticationTokenAsync();
+        await jsDialer.InvokeVoidAsync("setupTwilioDevice", jwtToken);
+    }
+
+    private async Task<string> GetTwilioAuthenticationTokenAsync()
+    {
+        var httpResponseMessage = await httpClient.PostAsync("/api/token", null);
+        var jwtToken = await httpResponseMessage.Content.ReadAsStringAsync();
+        return jwtToken;
+    }
 
     private void PressKey(char key) => dialNumber += key;
 
@@ -178,24 +196,6 @@
         message = error;
         logger.LogError(error);
         StateHasChanged();
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        dotNetObjectReference = DotNetObjectReference.Create(this);
-        var dialerModule = await js.InvokeAsync<IJSObjectReference>("import", "./js/dialer.js");
-        jsDialer = await dialerModule.InvokeAsync<IJSObjectReference>("createDialer");
-        await jsDialer.InvokeVoidAsync("setDotNetObjectReference", dotNetObjectReference);
-
-        var jwtToken = await GetTwilioAuthenticationTokenAsync();
-        await jsDialer.InvokeVoidAsync("setupTwilioDevice", jwtToken);
-    }
-
-    private async Task<string> GetTwilioAuthenticationTokenAsync()
-    {
-        var httpResponseMessage = await httpClient.PostAsync("/api/token", null);
-        var jwtToken = await httpResponseMessage.Content.ReadAsStringAsync();
-        return jwtToken;
     }
     
     public void RequestCall(string phoneNumber)

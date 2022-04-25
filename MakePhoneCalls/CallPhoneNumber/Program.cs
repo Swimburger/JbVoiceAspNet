@@ -22,5 +22,5 @@ var to = (PhoneNumber)Console.ReadLine();
 var call = CallResource.Create(
     from: from,
     to: to,
-    url: new Uri("https://demo.twilio.com/docs/voice.xml")
+    url: new Uri("http://demo.twilio.com/docs/voice.xml")
 );

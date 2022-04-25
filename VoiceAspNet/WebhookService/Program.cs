@@ -10,7 +10,6 @@ if (builder.Environment.IsDevelopment())
 var app = builder.Build();
 var configuration = app.Configuration;
 
-app.MapGet("/", () => "Hello World!");
 app.MapPost("/voice/incoming", () =>
 {
     var voiceResponse = new VoiceResponse();
