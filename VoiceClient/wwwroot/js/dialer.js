@@ -52,10 +52,11 @@ export function createDialer() {
                 this.dotNetObjectReference.invokeMethod('OnTwilioCallError', error.message);
             });
         },
-        startCall: function (phoneNumber) {
+        startCall: async function (phoneNumber) {
             // To parameter is a defined property by Twilio, but you could just as well use any other property name
             // and it will be passed to your TwiML webhook as meta data
-            this.device.connect({params: {"To": phoneNumber}});
+            this.call = await this.device.connect({params: {"To": phoneNumber}});
+            this.setupCallEvents(this.call);
         },
         endCall: function () {
             if (this.call) {

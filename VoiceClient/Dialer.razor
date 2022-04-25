@@ -11,65 +11,75 @@
     @(isCallIncoming || isCallOngoing ? "dialer--show-top" : "") 
     @(isCallIncoming ? "dialer--incoming-call" : "") 
     @(showDialer ? "dialer--show" : "dialer--hide")">
-    <button 
-        class="show-hide-button btn @(showDialer ? "btn-secondary" : "btn-success")" 
+    <button
+        class="show-hide-button btn @(showDialer ? "btn-secondary" : "btn-success")"
         @onclick="@(() => showDialer = !showDialer)">
-        @(showDialer ? "hide" : "show") phone <span class="oi oi-phone"></span>
+        @(showDialer ? "hide" : "show") phone <i class="bi bi-telephone-fill"></i>
     </button>
-    <p class="text-center text-light">@(message != "" ?message : "Standing by")</p>
+    <p class="text-center text-light">@(message != "" ? message : "Standing by")</p>
     <div class="input-group w-100 mb-3">
-        <input 
-            @bind="dialNumber" 
+        <input
+            @bind="dialNumber"
             @bind:event="oninput"
-            disabled="@(!isTwilioDeviceRegistered || isCallOngoing || isCallIncoming)" 
-            class="form-control text-center" 
+            disabled="@(!isTwilioDeviceRegistered || isCallOngoing || isCallIncoming)"
+            class="form-control text-center"
             placeholder="Phone number">
         <div class="input-group-append">
-            <button 
-                @onclick="RemoveKey" 
-                disabled="@(!isTwilioDeviceRegistered || isCallOngoing || isCallIncoming || dialNumber.Length == 0)" 
-                class="btn btn-outline-secondary" 
-                type="button"><span
-                class="oi oi-delete"></span></button>
+            <button
+                @onclick="RemoveKey"
+                disabled="@(!isTwilioDeviceRegistered || isCallOngoing || isCallIncoming || dialNumber.Length == 0)"
+                class="btn btn-outline-secondary"
+                type="button">
+                <i class="bi bi-backspace-fill"></i>
+            </button>
         </div>
     </div>
     <div class="dial-pad clearfix w-100 mb-3">
         @foreach (var dialKey in dialKeys)
         {
-            <button 
+            <button
                 @onclick="() => PressKey(dialKey)" class="btn btn-dark" type="button"
-                disabled="@(!isTwilioDeviceRegistered)"
-                >@dialKey</button>
+                disabled="@(!isTwilioDeviceRegistered)">
+                @dialKey
+            </button>
         }
     </div>
     <div class="btn-group w-100">
-        @if(isCallIncoming){
-            <button 
-                @onclick="RejectCall" 
-                type="button" 
-                class="btn btn-danger w-50"
-                >Reject</button>
-            <button 
-                @onclick="AcceptCall" 
-                type="button" 
-                class="btn btn-success w-50"
-                >Accept</button>
-        }else{
-            <button 
-                @onclick="EndCall" 
-                disabled="@(!isTwilioDeviceRegistered || !isCallOngoing)" 
-                type="button" 
-                class="btn btn-danger w-50"
-                >Hang up</button>
-            <button 
-                @onclick="StartCall" 
-                disabled="@(!isTwilioDeviceRegistered || isCallOngoing || dialNumber.Length == 0)" 
-                type="button" 
-                class="btn btn-success w-50"
-                >Call</button>
+        @if (isCallIncoming)
+        {
+            <button
+                @onclick="RejectCall"
+                type="button"
+                class="btn btn-danger w-50">
+                Reject
+            </button>
+            <button
+                @onclick="AcceptCall"
+                type="button"
+                class="btn btn-success w-50">
+                Accept
+            </button>
+        }
+        else
+        {
+            <button
+                @onclick="EndCall"
+                disabled="@(!isTwilioDeviceRegistered || !isCallOngoing)"
+                type="button"
+                class="btn btn-danger w-50">
+                Hang up
+            </button>
+            <button
+                @onclick="StartCall"
+                disabled="@(!isTwilioDeviceRegistered || isCallOngoing || dialNumber.Length == 0)"
+                type="button"
+                class="btn btn-success w-50">
+                Call
+            </button>
         }
     </div>
 </div>
+
 @code{
     private static readonly string dialKeys = "123456789*0#";
     private DotNetObjectReference<Dialer> dotNetObjectReference;
@@ -80,6 +90,8 @@
     private bool isTwilioDeviceRegistered = false;
     private bool isCallOngoing = false;
     private bool isCallIncoming = false;
+    
+    [Parameter] public EventCallback<string> OnCallRequested { get; set; }
 
     private void PressKey(char key) => dialNumber += key;
 
@@ -87,7 +99,11 @@
 
     private async Task StartCall()
     {
+        isCallOngoing = true;
+        isCallIncoming = false;
+        message = $"Calling {dialNumber}";
         await jsDialer.InvokeVoidAsync("startCall", dialNumber);
+        StateHasChanged();
     }
 
     private async Task EndCall()
@@ -121,7 +137,7 @@
         message = $"{phoneNumber} is calling you";
         StateHasChanged();
     }
-    
+
     [JSInvokable]
     public void OnTwilioCallAccepted(string phoneNumber)
     {
@@ -130,7 +146,7 @@
         message = $"Calling {phoneNumber}";
         StateHasChanged();
     }
-    
+
     [JSInvokable]
     public void OnTwilioDeviceError(string error)
     {
@@ -138,10 +154,10 @@
         logger.LogError(error);
         StateHasChanged();
     }
-    
+
     [JSInvokable]
     public void OnTwilioCallCancelled() => Reset();
-    
+
     [JSInvokable]
     public void OnTwilioCallDisconnected() => Reset();
 
@@ -155,7 +171,7 @@
         message = "";
         StateHasChanged();
     }
-    
+
     [JSInvokable]
     public void OnTwilioCallError(string error)
     {
@@ -163,14 +179,14 @@
         logger.LogError(error);
         StateHasChanged();
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         dotNetObjectReference = DotNetObjectReference.Create(this);
         var dialerModule = await js.InvokeAsync<IJSObjectReference>("import", "./js/dialer.js");
         jsDialer = await dialerModule.InvokeAsync<IJSObjectReference>("createDialer");
         await jsDialer.InvokeVoidAsync("setDotNetObjectReference", dotNetObjectReference);
-        
+
         var jwtToken = await GetTwilioAuthenticationTokenAsync();
         await jsDialer.InvokeVoidAsync("setupTwilioDevice", jwtToken);
     }
@@ -181,10 +197,17 @@
         var jwtToken = await httpResponseMessage.Content.ReadAsStringAsync();
         return jwtToken;
     }
+    
+    public void RequestCall(string phoneNumber)
+    {
+        dialNumber = phoneNumber;
+        showDialer = true;
+        StateHasChanged();
+    }
 
     public async ValueTask DisposeAsync()
     {
-        if(jsDialer != null)
+        if (jsDialer != null)
         {
             await jsDialer.InvokeVoidAsync("destroy");
         }
