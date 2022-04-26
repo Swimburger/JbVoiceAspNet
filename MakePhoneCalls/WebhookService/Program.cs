@@ -16,7 +16,7 @@ app.MapPost("/", () =>
         .Pause(1)
         .Say("Press 3 for notepad.")
         .Gather(
-            action: new Uri("/submit"),
+            action: new Uri("/submit", UriKind.Relative),
             numDigits: 1,
             input: new List<Gather.InputEnum> {Gather.InputEnum.Dtmf}
         );
