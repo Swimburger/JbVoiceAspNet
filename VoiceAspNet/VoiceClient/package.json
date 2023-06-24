@@ -4,6 +4,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@twilio/voice-sdk": "^2.1.1"
+    "@twilio/voice-sdk": "^2.6.0"
   }
 }
